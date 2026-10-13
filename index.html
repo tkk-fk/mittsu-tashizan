@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>3つの かずの たしざん｜特別支援教材開発研究所</title>
+<meta name="description" content="小学1年生「3つの数のたし算」のフラッシュカード。ヒントで数図ブロックを表示できます。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fdf8ef; --card:#ffffff; --ink:#2b2b2b; --sub:#6b6b6b; --line:#e6dccb;
+  --accent:#2f7d6d; --accent-ink:#ffffff; --btn:#f1ebe0;
+  --c1:#3b82f6; --c2:#f59e0b; --c3:#16a34a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  font-family:"Zen Maru Gothic","BIZ UDPGothic","UD デジタル 教科書体 N-R",sans-serif;
+  background:var(--bg); color:var(--ink);
+  min-height:100vh; min-height:100dvh;
+  touch-action:manipulation; -webkit-user-select:none; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+button{font-family:inherit;color:inherit;border:none;cursor:pointer;touch-action:manipulation}
+.screen{display:none;min-height:100vh;min-height:100dvh;flex-direction:column;align-items:center;padding:16px}
+.screen.on{display:flex}
+
+/* ===== せってい ===== */
+#start,#end{justify-content:center;gap:clamp(16px,3.5vh,28px)}
+h1{font-size:clamp(28px,7vw,48px);font-weight:900;text-align:center;line-height:1.3}
+.group{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:600px}
+.group h2{font-size:clamp(18px,4vw,24px);font-weight:700}
+.choices{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:100%}
+.choice{
+  min-height:52px;min-width:96px;padding:8px 14px;border-radius:16px;
+  background:var(--btn);font-size:clamp(17px,4vw,22px);font-weight:700;
+  border:3px solid transparent;
+}
+.choice[aria-pressed="true"]{background:#e3f2ee;border-color:var(--accent);color:var(--accent)}
+.go{
+  min-height:68px;min-width:220px;padding:12px 32px;border-radius:20px;
+  background:var(--accent);color:var(--accent-ink);font-size:clamp(22px,5vw,30px);font-weight:900;
+}
+.sub{background:var(--btn);color:var(--ink)}
+footer{font-size:12px;color:var(--sub);text-align:center}
+footer a{color:inherit}
+
+/* ===== もんだい ===== */
+#play{justify-content:flex-start;gap:12px;cursor:pointer}
+.top{width:100%;max-width:900px;display:flex;justify-content:flex-start}
+.home{min-height:48px;min-width:48px;padding:6px 16px;border-radius:14px;background:var(--btn);font-size:18px;font-weight:700}
+.card{
+  width:100%;max-width:900px;flex:1;min-height:0;
+  background:var(--card);border:3px solid var(--line);border-radius:28px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px 12px;gap:clamp(12px,3vh,28px);
+  margin-bottom:max(0px,env(safe-area-inset-bottom));
+}
+/* 式：1段目＝数・＋・＝・こたえ、2段目＝それぞれの数の真下にブロック */
+.expr{
+  display:grid;grid-template-columns:repeat(7,auto);
+  column-gap:clamp(4px,1.8vw,30px);row-gap:clamp(8px,2vh,18px);
+  justify-items:center;align-items:center;
+  --bs:clamp(16px,min(5.2vw,5.8vh),48px);
+}
+.num,.op,.answer{font-size:clamp(30px,min(10.5vw,13vh),140px);font-weight:900;line-height:1.1}
+.expr .op{color:var(--sub);font-weight:700}
+.n1{color:var(--c1)} .n2{color:var(--c2)} .n3{color:var(--c3)}
+.noHint .n1,.noHint .n2,.noHint .n3{color:var(--ink)}
+.bcol{
+  grid-row:2;align-self:start;
+  display:grid;grid-template-rows:repeat(5,var(--bs));grid-auto-flow:column;grid-auto-columns:var(--bs);gap:4px;
+}
+.bcol.c-1{grid-column:1} .bcol.c-2{grid-column:3} .bcol.c-3{grid-column:5}
+.noHint .bcol{display:none}
+.blk{width:var(--bs);height:var(--bs);border-radius:6px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.15)}
+.blk.c1{background:var(--c1)} .blk.c2{background:var(--c2)} .blk.c3{background:var(--c3)}
+.answer{font-weight:900;line-height:1.1;color:var(--accent);min-width:1.2em;text-align:center}
+.answer.hidden{visibility:hidden}
+
+@media (orientation:landscape) and (max-height:520px){
+  #play{gap:8px;padding:8px 16px}
+  .card{padding:10px;gap:6px;border-radius:20px}
+  .num,.op,.answer{font-size:clamp(32px,12vh,90px)}
+  .expr{--bs:clamp(12px,4.6vh,28px);row-gap:4px}
+  .top{position:absolute;left:8px;top:8px;width:auto;z-index:1}
+  .home{min-height:44px;font-size:15px;padding:4px 10px}
+}
+</style>
+</head>
+<body>
+
+<!-- せってい -->
+<section id="start" class="screen on">
+  <h1>3つの かずの たしざん</h1>
+
+  <div class="group">
+    <h2>もんだい</h2>
+    <div class="choices" id="levelChoices">
+      <button class="choice" data-v="1" aria-pressed="true">こたえ 10まで</button>
+      <button class="choice" data-v="2" aria-pressed="false">10と いくつ</button>
+      <button class="choice" data-v="3" aria-pressed="false">こたえ 20まで</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>ヒント（すうずブロック）</h2>
+    <div class="choices" id="hintChoices">
+      <button class="choice" data-v="1" aria-pressed="true">あり</button>
+      <button class="choice" data-v="0" aria-pressed="false">なし</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>もんだいの かず</h2>
+    <div class="choices" id="countChoices">
+      <button class="choice" data-v="5" aria-pressed="false">5もん</button>
+      <button class="choice" data-v="10" aria-pressed="true">10もん</button>
+      <button class="choice" data-v="20" aria-pressed="false">20もん</button>
+    </div>
+  </div>
+
+  <button class="go" id="goBtn">スタート</button>
+  <footer>特別支援教材開発研究所 ／ <a href="https://tkk-fk.com/" target="_blank" rel="noopener">tkk-fk.com</a></footer>
+</section>
+
+<!-- もんだい（画面のどこをタップしても すすむ） -->
+<section id="play" class="screen">
+  <div class="top"><button class="home" id="homeBtn">← もどる</button></div>
+  <div class="card">
+    <div class="expr" id="expr"></div>
+  </div>
+</section>
+
+<!-- おわり -->
+<section id="end" class="screen">
+  <h1>おわり</h1>
+  <button class="go" id="againBtn">もういちど</button>
+  <button class="go sub" id="setBtn">せっていに もどる</button>
+</section>
+
+<script>
+"use strict";
+
+/* ===== 問題づくり（純粋関数） ===== */
+// level 1: 答え10まで（a,b,c ≥ 1, 合計 ≤ 10）
+// level 2: 10と いくつ（a+b = 10, c = 1〜9）
+// level 3: 答え20まで（a,b,c は 1〜9, 合計 11〜20）
+function buildProblems(level){
+  const list = [];
+  if(level === 1){
+    for(let a=1;a<=8;a++)for(let b=1;b<=8;b++)for(let c=1;c<=8;c++){
+      if(a+b+c<=10) list.push([a,b,c]);
+    }
+  }else if(level === 2){
+    for(let a=1;a<=9;a++)for(let c=1;c<=9;c++) list.push([a,10-a,c]);
+  }else{
+    for(let a=1;a<=9;a++)for(let b=1;b<=9;b++)for(let c=1;c<=9;c++){
+      const s=a+b+c; if(s>=11&&s<=20) list.push([a,b,c]);
+    }
+  }
+  return list;
+}
+function shuffle(arr, rnd){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(rnd()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+// 1回分の問題を n問 えらぶ（同じ問題は出さない）
+function makeSet(level, n, rnd){
+  return shuffle(buildProblems(level), rnd).slice(0, n);
+}
+
+/* ===== 画面 ===== */
+const $ = id => document.getElementById(id);
+const state = { level:1, hint:true, count:10, set:[], idx:0, shown:false, lockUntil:0 };
+
+function show(id){
+  ['start','play','end'].forEach(s=>$(s).classList.toggle('on', s===id));
+}
+function bindChoices(groupId, key, conv){
+  $(groupId).addEventListener('click', e=>{
+    const b = e.target.closest('.choice'); if(!b) return;
+    state[key] = conv(b.dataset.v);
+    $(groupId).querySelectorAll('.choice').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  });
+}
+bindChoices('levelChoices','level',Number);
+bindChoices('hintChoices','hint',v=>v==='1');
+bindChoices('countChoices','count',Number);
+
+function begin(){
+  state.set = makeSet(state.level, state.count, Math.random);
+  state.idx = 0;
+  $('expr').classList.toggle('noHint', !state.hint);
+  show('play');
+  render();
+}
+$('goBtn').addEventListener('click', begin);
+$('againBtn').addEventListener('click', begin);
+$('setBtn').addEventListener('click', ()=>show('start'));
+$('homeBtn').addEventListener('click', e=>{ e.stopPropagation(); show('start'); });
+
+function blk(cls){ const d=document.createElement('div'); d.className='blk '+cls; return d; }
+
+function render(){
+  const [a,b,c] = state.set[state.idx];
+  state.shown = false;
+  const e = $('expr');
+  e.innerHTML =
+    '<span class="num n1">'+a+'</span><span class="op">＋</span>'+
+    '<span class="num n2">'+b+'</span><span class="op">＋</span>'+
+    '<span class="num n3">'+c+'</span><span class="op">＝</span>'+
+    '<span class="answer hidden" id="answer">'+(a+b+c)+'</span>';
+  // それぞれの数の 真下に、たて5こずつで ならべる
+  [[a,'c1'],[b,'c2'],[c,'c3']].forEach(([n,cls],i)=>{
+    const g=document.createElement('div'); g.className='bcol c-'+(i+1);
+    for(let k=0;k<n;k++) g.appendChild(blk(cls));
+    e.appendChild(g);
+  });
+}
+
+// タップ：もんだい → こたえ → つぎの もんだい
+function tap(now){
+  if(now < state.lockUntil) return;     // 2どおし（れんだ）で とばさない
+  state.lockUntil = now + 400;
+  if(!state.shown){
+    state.shown = true;
+    $('answer').classList.remove('hidden');
+  }else if(state.idx + 1 < state.set.length){
+    state.idx++;
+    render();
+  }else{
+    show('end');
+  }
+}
+$('play').addEventListener('click', ()=> tap(Date.now()));
+
+// iOS のピンチズーム抑制
+document.addEventListener('gesturestart', e=>e.preventDefault());
+
+if(typeof module!=='undefined') module.exports={buildProblems,shuffle,makeSet};
+</script>
+</body>
+</html>
