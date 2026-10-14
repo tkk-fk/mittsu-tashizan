@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>3つの かずの たしざん｜特別支援教材開発研究所</title>
-<meta name="description" content="小学1年生「3つの数のたし算」のフラッシュカード。ヒントで数図ブロックを表示できます。">
+<meta name="description" content="小学1年生「3つの数のたし算」のフラッシュカード。ヒントで数図ブロックやさくらんぼ計算の図を表示できます。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
@@ -63,28 +63,44 @@ footer a{color:inherit}
   display:grid;grid-template-columns:repeat(7,auto);
   column-gap:clamp(4px,1.8vw,30px);row-gap:clamp(8px,2vh,18px);
   justify-items:center;align-items:center;
-  --bs:clamp(16px,min(5.2vw,5.8vh),48px);
+  --bs:clamp(14px,min(4.6vw,5.4vh),44px);
+  --ch:clamp(70px,min(22vw,26vh),260px);
 }
 .num,.op,.answer{font-size:clamp(30px,min(10.5vw,13vh),140px);font-weight:900;line-height:1.1}
 .expr .op{color:var(--sub);font-weight:700}
-.n1{color:var(--c1)} .n2{color:var(--c2)} .n3{color:var(--c3)}
-.noHint .n1,.noHint .n2,.noHint .n3{color:var(--ink)}
+.hint-block .n1{color:var(--c1)} .hint-block .n2{color:var(--c2)} .hint-block .n3{color:var(--c3)}
 .bcol{
   grid-row:2;align-self:start;
   display:grid;grid-template-rows:repeat(5,var(--bs));grid-auto-flow:column;grid-auto-columns:var(--bs);gap:4px;
 }
+/* さくらんぼ：まえの 2つの かずから 線をのばして □ へ */
+.cherry{grid-row:2;grid-column:1 / 4;justify-self:stretch;position:relative;height:var(--ch)}
+.cherry svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.cherry line{stroke:#a9c4e2;stroke-linecap:round}
+.cherry rect{fill:none;stroke:#c3d6ec;stroke-dasharray:10 8;stroke-linecap:round}
+.cherry text{fill:var(--accent);font-weight:900;text-anchor:middle;dominant-baseline:central;font-family:inherit}
+.cherry text.hidden{visibility:hidden}
+.blk{position:relative;width:var(--bs);height:var(--bs);border-radius:18%;box-shadow:inset 0 -3px 0 rgba(0,0,0,.15)}
 .bcol.c-1{grid-column:1} .bcol.c-2{grid-column:3} .bcol.c-3{grid-column:5}
-.noHint .bcol{display:none}
-.blk{width:var(--bs);height:var(--bs);border-radius:6px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.15)}
 .blk.c1{background:var(--c1)} .blk.c2{background:var(--c2)} .blk.c3{background:var(--c3)}
 .answer{font-weight:900;line-height:1.1;color:var(--accent);min-width:1.2em;text-align:center}
 .answer.hidden{visibility:hidden}
 
+@media (max-width:520px) and (orientation:portrait){
+  .expr{--bs:clamp(11px,3.4vw,20px);column-gap:clamp(4px,2.4vw,14px)}
+  .bcol{gap:3px}
+}
+@media (max-width:360px) and (orientation:portrait){
+  .card{padding:16px 6px}
+  .num,.op,.answer{font-size:clamp(26px,9vw,40px)}
+  .expr{--bs:10px;column-gap:4px}
+  .bcol{gap:2px}
+}
 @media (orientation:landscape) and (max-height:520px){
   #play{gap:8px;padding:8px 16px}
   .card{padding:10px;gap:6px;border-radius:20px}
   .num,.op,.answer{font-size:clamp(32px,12vh,90px)}
-  .expr{--bs:clamp(12px,4.6vh,28px);row-gap:4px}
+  .expr{--bs:clamp(12px,4.6vh,28px);--ch:clamp(60px,26vh,140px);row-gap:4px}
   .top{position:absolute;left:8px;top:8px;width:auto;z-index:1}
   .home{min-height:44px;font-size:15px;padding:4px 10px}
 }
@@ -106,10 +122,11 @@ footer a{color:inherit}
   </div>
 
   <div class="group">
-    <h2>ヒント（すうずブロック）</h2>
+    <h2>ヒント</h2>
     <div class="choices" id="hintChoices">
-      <button class="choice" data-v="1" aria-pressed="true">あり</button>
-      <button class="choice" data-v="0" aria-pressed="false">なし</button>
+      <button class="choice" data-v="block" aria-pressed="true">ブロック</button>
+      <button class="choice" data-v="cherry" aria-pressed="false">さくらんぼ</button>
+      <button class="choice" data-v="none" aria-pressed="false">なし</button>
     </div>
   </div>
 
@@ -145,9 +162,10 @@ footer a{color:inherit}
 "use strict";
 
 /* ===== 問題づくり（純粋関数） ===== */
-// level 1: 答え10まで（a,b,c ≥ 1, 合計 ≤ 10）
+// a ＋ b ＋ c の [a,b,c]
+// level 1: こたえ 10まで（a,b,c ≥ 1, こたえ ≤ 10）
 // level 2: 10と いくつ（a+b = 10, c = 1〜9）
-// level 3: 答え20まで（a,b,c は 1〜9, 合計 11〜20）
+// level 3: こたえ 20まで（a,b,c は 1〜9, こたえ 11〜20）
 function buildProblems(level){
   const list = [];
   if(level === 1){
@@ -158,7 +176,7 @@ function buildProblems(level){
     for(let a=1;a<=9;a++)for(let c=1;c<=9;c++) list.push([a,10-a,c]);
   }else{
     for(let a=1;a<=9;a++)for(let b=1;b<=9;b++)for(let c=1;c<=9;c++){
-      const s=a+b+c; if(s>=11&&s<=20) list.push([a,b,c]);
+      const t=a+b+c; if(t>=11&&t<=20) list.push([a,b,c]);
     }
   }
   return list;
@@ -175,10 +193,14 @@ function shuffle(arr, rnd){
 function makeSet(level, n, rnd){
   return shuffle(buildProblems(level), rnd).slice(0, n);
 }
+// ブロックの ならび：それぞれの 数の 真下に その数だけ（数と おなじ色）
+function blockPlan(a,b,c){
+  return [[a,'c1'],[b,'c2'],[c,'c3']];
+}
 
 /* ===== 画面 ===== */
 const $ = id => document.getElementById(id);
-const state = { level:1, hint:true, count:10, set:[], idx:0, shown:false, lockUntil:0 };
+const state = { level:1, hint:'block', count:10, set:[], idx:0, shown:false, midShown:false, lockUntil:0 };
 
 function show(id){
   ['start','play','end'].forEach(s=>$(s).classList.toggle('on', s===id));
@@ -191,13 +213,13 @@ function bindChoices(groupId, key, conv){
   });
 }
 bindChoices('levelChoices','level',Number);
-bindChoices('hintChoices','hint',v=>v==='1');
+bindChoices('hintChoices','hint',String);
 bindChoices('countChoices','count',Number);
 
 function begin(){
   state.set = makeSet(state.level, state.count, Math.random);
   state.idx = 0;
-  $('expr').classList.toggle('noHint', !state.hint);
+  $('expr').className = 'expr hint-' + state.hint;
   show('play');
   render();
 }
@@ -206,30 +228,69 @@ $('againBtn').addEventListener('click', begin);
 $('setBtn').addEventListener('click', ()=>show('start'));
 $('homeBtn').addEventListener('click', e=>{ e.stopPropagation(); show('start'); });
 
-function blk(cls){ const d=document.createElement('div'); d.className='blk '+cls; return d; }
-
 function render(){
   const [a,b,c] = state.set[state.idx];
   state.shown = false;
+  state.midShown = false;
   const e = $('expr');
   e.innerHTML =
     '<span class="num n1">'+a+'</span><span class="op">＋</span>'+
     '<span class="num n2">'+b+'</span><span class="op">＋</span>'+
     '<span class="num n3">'+c+'</span><span class="op">＝</span>'+
     '<span class="answer hidden" id="answer">'+(a+b+c)+'</span>';
-  // それぞれの数の 真下に、たて5こずつで ならべる
-  [[a,'c1'],[b,'c2'],[c,'c3']].forEach(([n,cls],i)=>{
-    const g=document.createElement('div'); g.className='bcol c-'+(i+1);
-    for(let k=0;k<n;k++) g.appendChild(blk(cls));
-    e.appendChild(g);
-  });
+  if(state.hint === 'block'){
+    // それぞれの数の 真下に、たて5こずつで ならべる
+    blockPlan(a,b,c).forEach(([n,cls],i)=>{
+      const g=document.createElement('div'); g.className='bcol c-'+(i+1);
+      for(let k=0;k<n;k++){ const d=document.createElement('div'); d.className='blk '+cls; g.appendChild(d); }
+      e.appendChild(g);
+    });
+  }else if(state.hint === 'cherry'){
+    const ch=document.createElement('div'); ch.className='cherry';
+    ch.innerHTML='<svg aria-hidden="true"><line/><line/><rect/><text class="hidden" id="mid"></text></svg>';
+    ch.querySelector('#mid').textContent = a + b;
+    e.appendChild(ch);
+    drawCherry();
+  }
 }
 
-// タップ：もんだい → こたえ → つぎの もんだい
+// さくらんぼの 線と □ を、1つめ・2つめの 数の 位置に あわせて かく
+function cherryGeom(x1, x2, h){
+  const box = Math.min(h*0.5, Math.max(40, (x2-x1)*0.75));
+  const mid = (x1+x2)/2, top = h - box - 2, y0 = h*0.04;
+  return { l1:[x1,y0,mid,top], l2:[x2,y0,mid,top], rect:[mid-box/2, top, box, box], sw:Math.max(3, box*0.06) };
+}
+function drawCherry(){
+  const ch = document.querySelector('.cherry'); if(!ch) return;
+  const nums = document.querySelectorAll('.num');
+  const r = ch.getBoundingClientRect(), r1 = nums[0].getBoundingClientRect(), r2 = nums[1].getBoundingClientRect();
+  if(!r.width) return;
+  const g = cherryGeom(r1.left + r1.width/2 - r.left, r2.left + r2.width/2 - r.left, r.height);
+  const svg = ch.querySelector('svg'); svg.setAttribute('viewBox','0 0 '+r.width+' '+r.height);
+  const [L1,L2] = svg.querySelectorAll('line'), R = svg.querySelector('rect');
+  [[L1,g.l1],[L2,g.l2]].forEach(([el,[ax,ay,bx,by]])=>{
+    el.setAttribute('x1',ax); el.setAttribute('y1',ay); el.setAttribute('x2',bx); el.setAttribute('y2',by);
+    el.setAttribute('stroke-width', g.sw);
+  });
+  R.setAttribute('x',g.rect[0]); R.setAttribute('y',g.rect[1]);
+  R.setAttribute('width',g.rect[2]); R.setAttribute('height',g.rect[3]);
+  R.setAttribute('rx', g.rect[2]*0.18); R.setAttribute('stroke-width', g.sw);
+  const T = svg.querySelector('text');
+  T.setAttribute('x', g.rect[0] + g.rect[2]/2); T.setAttribute('y', g.rect[1] + g.rect[3]/2 + g.rect[3]*0.03);
+  T.setAttribute('font-size', g.rect[3]*0.62);
+}
+window.addEventListener('resize', drawCherry);
+window.addEventListener('orientationchange', ()=>setTimeout(drawCherry, 200));
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(drawCherry);
+
+// タップ：もんだい →（さくらんぼ：□に とちゅうの かず）→ こたえ → つぎの もんだい
 function tap(now){
   if(now < state.lockUntil) return;     // 2どおし（れんだ）で とばさない
   state.lockUntil = now + 400;
-  if(!state.shown){
+  if(state.hint === 'cherry' && !state.midShown){
+    state.midShown = true;
+    $('mid').classList.remove('hidden');
+  }else if(!state.shown){
     state.shown = true;
     $('answer').classList.remove('hidden');
   }else if(state.idx + 1 < state.set.length){
@@ -244,7 +305,7 @@ $('play').addEventListener('click', ()=> tap(Date.now()));
 // iOS のピンチズーム抑制
 document.addEventListener('gesturestart', e=>e.preventDefault());
 
-if(typeof module!=='undefined') module.exports={buildProblems,shuffle,makeSet};
+if(typeof module!=='undefined') module.exports={buildProblems,shuffle,makeSet,blockPlan,cherryGeom};
 </script>
 </body>
 </html>
